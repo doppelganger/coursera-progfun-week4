@@ -78,17 +78,22 @@ object Huffman {
    *   }
    */
     def times(chars: List[Char]): List[(Char, Int)] = {
-      def pack(list: List[Char]): List[List[Char]] = {
-        chars match {
-          case Nil => Nil
+    @tailrec
+      def timesAux(charsAux: List[Char], resultAux: List[Char], result: List[List[Char]]) : List[List[Char]] =
+      {
+        charsAux match {
+          case Nil => resultAux :: result
           case x :: xs =>
-            val (first, rest) = xs span (y => y == x)
-            first :: pack(rest)
+            if (resultAux.isEmpty) timesAux(xs, List(x), result)
+            else if (x == resultAux.head) timesAux(xs, x :: resultAux, result)
+            else timesAux(xs, List(x), resultAux :: result)
         }
       }
-
-      val sortedPacked = pack(chars.sorted)
-      sortedPacked map (x => (x.head, x.length))
+      if (chars.isEmpty) Nil
+      else{
+        val sortedPacked = timesAux(chars.sorted, Nil, Nil)
+        sortedPacked map (x => (x.head, x.length))
+      }
     }
   
   /**
@@ -248,13 +253,9 @@ object Huffman {
    * sub-trees, think of how to build the code table for the entire tree.
    */
     def convert(tree: CodeTree): CodeTable = {
-      def convertAux(treeAux: CodeTree, bits: List[Bit], codeTable: CodeTable) : CodeTable = {
-        tree match {
-          case Fork(left, right, _, _) => mergeCodeTables(convertAux(left, bits, codeTable), convertAux(right, bits, codeTable))
-          case Leaf(char, _) => (char, bits) :: codeTable
-        }
-      }
-    convertAux(tree, Nil, Nil)
+    (for (char <- 'a' to 'z';
+          bits = findChar(tree, char, Nil)
+          if bits.nonEmpty) yield (char, findChar(tree, char, Nil))).toList
   }
   
   /**
